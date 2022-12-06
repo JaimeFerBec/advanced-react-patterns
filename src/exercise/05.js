@@ -4,14 +4,21 @@
 import * as React from 'react'
 import {Switch} from '../switch'
 
+// ./hooks/use-toggle.js
+
 const callAll = (...fns) => (...args) => fns.forEach(fn => fn?.(...args))
+
+const toggleActions = {
+  toggle: 'toggle',
+  reset: 'reset',
+}
 
 function toggleReducer(state, {type, initialState}) {
   switch (type) {
-    case 'toggle': {
+    case toggleActions.toggle: {
       return {on: !state.on}
     }
-    case 'reset': {
+    case toggleActions.reset: {
       return initialState
     }
     default: {
@@ -21,16 +28,16 @@ function toggleReducer(state, {type, initialState}) {
 }
 
 // 🐨 add a new option called `reducer` that defaults to `toggleReducer`
-function useToggle({initialOn = false} = {}) {
+function useToggle({initialOn = false, reducer = toggleReducer} = {}) {
   const {current: initialState} = React.useRef({on: initialOn})
   // 🐨 instead of passing `toggleReducer` here, pass the `reducer` that's
   // provided as an option
   // ... and that's it! Don't forget to check the 💯 extra credit!
-  const [state, dispatch] = React.useReducer(toggleReducer, initialState)
+  const [state, dispatch] = React.useReducer(reducer, initialState)
   const {on} = state
 
-  const toggle = () => dispatch({type: 'toggle'})
-  const reset = () => dispatch({type: 'reset', initialState})
+  const toggle = () => dispatch({type: toggleActions.toggle})
+  const reset = () => dispatch({type: toggleActions.reset, initialState})
 
   function getTogglerProps({onClick, ...props} = {}) {
     return {
@@ -56,25 +63,19 @@ function useToggle({initialOn = false} = {}) {
   }
 }
 
+// export {useToggle, toggleReducer, toggleActions}
+
+// src/app.js
+// import {useToggle, toggleReducer, toggleActions} from './hooks/use-toggle'
 function App() {
   const [timesClicked, setTimesClicked] = React.useState(0)
   const clickedTooMuch = timesClicked >= 4
 
   function toggleStateReducer(state, action) {
-    switch (action.type) {
-      case 'toggle': {
-        if (clickedTooMuch) {
-          return {on: state.on}
-        }
-        return {on: !state.on}
-      }
-      case 'reset': {
-        return {on: false}
-      }
-      default: {
-        throw new Error(`Unsupported type: ${action.type}`)
-      }
+    if (action.type === toggleActions.toggle && timesClicked >= 4) {
+      return {on: state.on}
     }
+    return toggleReducer(state, action)
   }
 
   const {on, getTogglerProps, getResetterProps} = useToggle({
